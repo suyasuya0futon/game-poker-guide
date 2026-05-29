@@ -151,7 +151,7 @@
 </div>
 
 <button class="go" id="goBtn">判定する</button>
-<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30f</div>
+<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30g</div>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
@@ -374,6 +374,15 @@ function enc(cat,kick){
 }
 const CAT_NAME=['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
 function catOf(score){ return Math.floor(score/Math.pow(16,5)); }
+// 役名（トップがAのストレートフラッシュはロイヤル表記）
+function handName(score){
+  const cat=catOf(score);
+  if(cat===8){
+    const top=Math.floor(score/Math.pow(16,4))%16; // 最高札
+    if(top===14) return 'ロイヤルフラッシュ';
+  }
+  return CAT_NAME[cat];
+}
 
 // 利用可能なカードから最高の5枚（5枚未満ならそのまま）を返す
 function bestHandCards(cards){
@@ -410,7 +419,7 @@ function updateBestHand(){
     el.innerHTML=`<span>${r==='T'?'10':r}</span><span class="suit">${SUIT_SYM[su]}</span>`;
     cont.appendChild(el);
   });
-  nameEl.textContent=CAT_NAME[catOf(score)];
+  nameEl.textContent=handName(score);
 }
 
 /* ===== モンテカルロでエクイティ計算 ===== */
@@ -587,8 +596,8 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 
   let handname='—', boardname=null;
   if(board.length>=3){
-    handname=CAT_NAME[catOf(bestScore(hole.concat(board)))];
-    boardname=CAT_NAME[catOf(bestScore(board))];
+    handname=handName(bestScore(hole.concat(board)));
+    boardname=handName(bestScore(board));
   }
 
   const bbAmt=parseFloat(document.getElementById('bbamt').value);
