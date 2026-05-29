@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>ポーカー補佐 (テキサスホールデム)</title>
+<style>
+  :root{
+    --bg:#0b132b; --panel:#1c2541; --panel2:#243355;
+    --accent:#5bc0be; --accent2:#3a86ff;
+    --good:#2ecc71; --warn:#f1c40f; --bad:#e74c3c; --text:#e6edf3; --muted:#8a99b3;
+    --red:#ff5d73;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg);color:var(--text);padding:12px;padding-bottom:120px;}
+  h1{font-size:18px;margin:4px 0 12px;text-align:center;color:var(--accent);}
+  .panel{background:var(--panel);border-radius:12px;padding:12px;margin-bottom:12px;}
+  .label{font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  select,input{background:var(--panel2);color:var(--text);border:1px solid #34466b;border-radius:8px;
+    padding:10px;font-size:16px;}
+  select{flex:1;min-width:120px;}
+  .seg{display:flex;flex-wrap:wrap;gap:6px;}
+  .seg button{flex:1;min-width:64px;background:var(--panel2);color:var(--text);border:1px solid #34466b;
+    border-radius:8px;padding:10px 6px;font-size:14px;font-weight:600;}
+  .seg button.on{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  .cards{display:flex;gap:8px;flex-wrap:wrap;}
+  .slot{width:52px;height:72px;border-radius:8px;border:2px dashed #44557a;background:var(--panel2);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;font-weight:700;
+    position:relative;cursor:pointer;}
+  .slot.filled{border-style:solid;background:#fff;color:#111;}
+  .slot.filled.red{color:var(--red);}
+  .slot .suit{font-size:20px;line-height:1;}
+  .slot .ph{font-size:11px;color:var(--muted);font-weight:500;}
+  .slot .x{position:absolute;top:-8px;right:-8px;width:20px;height:20px;border-radius:50%;background:var(--bad);
+    color:#fff;font-size:13px;line-height:20px;text-align:center;display:none;}
+  .slot.filled .x{display:block;}
+  .street-tag{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .go{width:100%;padding:16px;font-size:18px;font-weight:800;border:none;border-radius:12px;
+    background:var(--accent);color:#06241f;margin-top:4px;}
+  .go:active{opacity:.8;}
+  #result{display:none;}
+  .equitybar{height:14px;border-radius:8px;background:#34466b;overflow:hidden;margin:8px 0;}
+  .equitybar > div{height:100%;background:linear-gradient(90deg,var(--bad),var(--warn),var(--good));}
+  .verdict{font-size:24px;font-weight:800;text-align:center;padding:10px;border-radius:10px;margin:6px 0;}
+  .v-fold{background:#3a1f24;color:var(--bad);}
+  .v-check{background:#2a2f1f;color:var(--warn);}
+  .v-call{background:#1f2a3a;color:var(--accent2);}
+  .v-bet,.v-raise{background:#1f3a2a;color:var(--good);}
+  .stat{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #2a3a5c;font-size:14px;}
+  .stat span:first-child{color:var(--muted);}
+  .reason{font-size:13px;color:var(--text);line-height:1.6;margin-top:8px;background:var(--panel2);
+    padding:10px;border-radius:8px;}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;z-index:50;}
+  .modal.open{display:flex;}
+  .sheet{width:100%;background:var(--panel);border-radius:16px 16px 0 0;padding:14px;max-height:85vh;overflow:auto;}
+  .sheet h3{margin:0 0 10px;font-size:15px;text-align:center;}
+  .suit-row{display:flex;gap:8px;margin-bottom:10px;}
+  .suit-row button{flex:1;padding:12px;font-size:22px;border-radius:8px;border:1px solid #34466b;background:var(--panel2);color:var(--text);}
+  .suit-row button.on{background:var(--accent2);border-color:var(--accent2);}
+  .suit-row button.red{color:var(--red);}
+  .rank-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+  .rank-grid button{padding:14px 0;font-size:18px;font-weight:700;border-radius:8px;border:1px solid #34466b;
+    background:#fff;color:#111;}
+  .rank-grid button:disabled{opacity:.25;}
+  .sheet .close{width:100%;margin-top:12px;padding:12px;border:none;border-radius:8px;background:var(--panel2);color:var(--text);font-size:15px;}
+  .hint{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;}
+</style>
+</head>
+<body>
+<h1>♠ ポーカー補佐 ♥ テキサスホールデム</h1>
+
+<div class="panel">
+  <div class="label">人数（自分を含む）</div>
+  <div class="row">
+    <select id="players">
+      <option value="2">2人 (ヘッズアップ)</option>
+      <option value="3">3人</option>
+      <option value="4">4人</option>
+      <option value="5">5人</option>
+      <option value="6" selected>6人</option>
+      <option value="7">7人</option>
+      <option value="8">8人</option>
+      <option value="9">9人</option>
+      <option value="10">10人</option>
+    </select>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="label">自分のポジション</div>
+  <div class="seg" id="posSeg">
+    <button data-pos="early">アーリー(UTG)</button>
+    <button data-pos="mid">ミドル(MP)</button>
+    <button data-pos="co">カットオフ(CO)</button>
+    <button data-pos="btn" class="on">ボタン(BTN)</button>
+    <button data-pos="sb">SB</button>
+    <button data-pos="bb">BB</button>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="label">自分の手札（2枚）</div>
+  <div class="cards" id="holeCards"></div>
+</div>
+
+<div class="panel">
+  <div class="label">ボード（任意・進行に合わせて入力）</div>
+  <div class="street-tag">フロップ</div>
+  <div class="cards" id="flopCards"></div>
+  <div class="street-tag" style="margin-top:10px;">ターン</div>
+  <div class="cards" id="turnCards"></div>
+  <div class="street-tag" style="margin-top:10px;">リバー</div>
+  <div class="cards" id="riverCards"></div>
+</div>
+
+<div class="panel">
+  <div class="label">ポットオッズ計算（任意）</div>
+  <div class="row">
+    <input id="pot" type="number" inputmode="numeric" placeholder="現在のポット" style="flex:1;">
+    <input id="tocall" type="number" inputmode="numeric" placeholder="コールに必要な額" style="flex:1;">
+  </div>
+  <div class="hint">入力するとコール是非をオッズで厳密に判定します</div>
+</div>
+
+<button class="go" id="goBtn">判定する</button>
+
+<div class="panel" id="result">
+  <div id="verdict" class="verdict"></div>
+  <div class="label" style="margin-top:6px;">勝率 (エクイティ)</div>
+  <div class="equitybar"><div id="ebar" style="width:0%"></div></div>
+  <div class="stat"><span>勝率</span><span id="eq"></span></div>
+  <div class="stat"><span>現在の役</span><span id="handname"></span></div>
+  <div class="stat" id="oddsStat" style="display:none;"><span>必要勝率(ポットオッズ)</span><span id="potodds"></span></div>
+  <div class="reason" id="reason"></div>
+</div>
+
+<!-- card picker modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3 id="sheetTitle">カードを選択</h3>
+    <div class="suit-row" id="suitRow">
+      <button data-suit="s">♠</button>
+      <button data-suit="h" class="red">♥</button>
+      <button data-suit="d" class="red">♦</button>
+      <button data-suit="c">♣</button>
+    </div>
+    <div class="rank-grid" id="rankGrid"></div>
+    <button class="close" id="closeSheet">キャンセル</button>
+  </div>
+</div>
+
+<script>
+/* ===== カードモデル ===== */
+const RANKS = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+const RVAL  = {2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,T:10,J:11,Q:12,K:13,A:14};
+const SUITS = ['s','h','d','c'];
+const SUIT_SYM = {s:'♠',h:'♥',d:'♦',c:'♣'};
+const RED = {h:true,d:true};
+
+const state = {
+  hole:[null,null],
+  flop:[null,null,null],
+  turn:[null],
+  river:[null],
+  pos:'btn'
+};
+
+/* ===== スロットDOM生成 ===== */
+function makeSlots(containerId, arr, group){
+  const c = document.getElementById(containerId);
+  c.innerHTML='';
+  arr.forEach((_,i)=>{
+    const s=document.createElement('div');
+    s.className='slot';
+    s.dataset.group=group; s.dataset.idx=i;
+    s.innerHTML='<span class="ph">+</span><span class="x">×</span>';
+    s.addEventListener('click',(e)=>{
+      if(e.target.classList.contains('x')){ setCard(group,i,null); return; }
+      openPicker(group,i);
+    });
+    c.appendChild(s);
+  });
+  renderGroup(group);
+}
+function arrOf(group){
+  return group==='hole'?state.hole:group==='flop'?state.flop:group==='turn'?state.turn:state.river;
+}
+function renderGroup(group){
+  const c=document.getElementById(group+'Cards');
+  const arr=arrOf(group);
+  [...c.children].forEach((slot,i)=>{
+    const card=arr[i];
+    slot.classList.remove('filled','red');
+    if(card){
+      const r=card[0], su=card[1];
+      slot.classList.add('filled');
+      if(RED[su]) slot.classList.add('red');
+      slot.innerHTML=`<span>${r==='T'?'10':r}</span><span class="suit">${SUIT_SYM[su]}</span><span class="x">×</span>`;
+    }else{
+      slot.innerHTML='<span class="ph">+</span><span class="x">×</span>';
+    }
+  });
+}
+function setCard(group,i,card){
+  arrOf(group)[i]=card;
+  renderGroup(group);
+}
+
+/* ===== 使用済みカード ===== */
+function usedCards(except){
+  const all=[...state.hole,...state.flop,...state.turn,...state.river];
+  const set=new Set();
+  all.forEach((c)=>{ if(c) set.add(c); });
+  if(except) set.delete(except);
+  return set;
+}
+
+/* ===== ピッカー ===== */
+let pickTarget=null, pickSuit='s';
+function openPicker(group,i){
+  pickTarget={group,i};
+  pickSuit='s';
+  syncSuitBtns(); renderRankGrid();
+  document.getElementById('modal').classList.add('open');
+}
+function closePicker(){ document.getElementById('modal').classList.remove('open'); pickTarget=null; }
+function syncSuitBtns(){
+  document.querySelectorAll('#suitRow button').forEach(b=>{
+    b.classList.toggle('on', b.dataset.suit===pickSuit);
+  });
+}
+function renderRankGrid(){
+  const grid=document.getElementById('rankGrid');
+  grid.innerHTML='';
+  const current = pickTarget ? arrOf(pickTarget.group)[pickTarget.i] : null;
+  const used = usedCards(current);
+  [...RANKS].reverse().forEach(r=>{
+    const card=r+pickSuit;
+    const b=document.createElement('button');
+    b.textContent = r==='T'?'10':r;
+    if(used.has(card)) b.disabled=true;
+    b.addEventListener('click',()=>{
+      setCard(pickTarget.group,pickTarget.i,card);
+      closePicker();
+    });
+    grid.appendChild(b);
+  });
+}
+document.querySelectorAll('#suitRow button').forEach(b=>{
+  b.addEventListener('click',()=>{ pickSuit=b.dataset.suit; syncSuitBtns(); renderRankGrid(); });
+});
+document.getElementById('closeSheet').addEventListener('click',closePicker);
+document.getElementById('modal').addEventListener('click',e=>{ if(e.target.id==='modal') closePicker(); });
+
+/* ===== ポジション ===== */
+document.querySelectorAll('#posSeg button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#posSeg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state.pos=b.dataset.pos;
+  });
+});
+
+/* ===== 役判定（7枚→最強5枚スコア） ===== */
+function bestScore(cards){
+  const vals=cards.map(c=>RVAL[c[0]]);
+  const cnt={}; vals.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+  const bySuit={}; cards.forEach(c=>{(bySuit[c[1]]=bySuit[c[1]]||[]).push(RVAL[c[0]]);});
+  let flushSuit=null;
+  for(const s in bySuit){ if(bySuit[s].length>=5){ flushSuit=s; } }
+  function topStraight(rset){
+    const present={}; rset.forEach(v=>present[v]=true);
+    if(present[14]) present[1]=true;
+    for(let hi=14;hi>=5;hi--){
+      let ok=true;
+      for(let k=0;k<5;k++){ if(!present[hi-k]){ok=false;break;} }
+      if(ok) return hi;
+    }
+    return 0;
+  }
+  let sf=0;
+  if(flushSuit){ sf=topStraight(bySuit[flushSuit]); }
+  if(sf) return enc(8,[sf]);
+  const groups=Object.keys(cnt).map(Number).map(v=>({v,n:cnt[v]}));
+  groups.sort((a,b)=> b.n-a.n || b.v-a.v);
+  if(groups[0].n===4){
+    const quad=groups[0].v;
+    const kick=Math.max(...vals.filter(v=>v!==quad));
+    return enc(7,[quad,kick]);
+  }
+  if(groups[0].n===3){
+    const pair=groups.slice(1).find(g=>g.n>=2);
+    if(pair) return enc(6,[groups[0].v,pair.v]);
+  }
+  if(flushSuit){
+    const fr=bySuit[flushSuit].slice().sort((a,b)=>b-a).slice(0,5);
+    return enc(5,fr);
+  }
+  const st=topStraight(vals);
+  if(st) return enc(4,[st]);
+  if(groups[0].n===3){
+    const t=groups[0].v;
+    const ks=vals.filter(v=>v!==t).sort((a,b)=>b-a).slice(0,2);
+    return enc(3,[t,...ks]);
+  }
+  const pairs=groups.filter(g=>g.n===2).map(g=>g.v).sort((a,b)=>b-a);
+  if(pairs.length>=2){
+    const k=Math.max(...vals.filter(v=>v!==pairs[0]&&v!==pairs[1]));
+    return enc(2,[pairs[0],pairs[1],k]);
+  }
+  if(pairs.length===1){
+    const ks=vals.filter(v=>v!==pairs[0]).sort((a,b)=>b-a).slice(0,3);
+    return enc(1,[pairs[0],...ks]);
+  }
+  const hc=vals.slice().sort((a,b)=>b-a).slice(0,5);
+  return enc(0,hc);
+}
+function enc(cat,kick){
+  let s=cat;
+  for(let i=0;i<5;i++){ s=s*16+((kick[i]||0)); }
+  return s;
+}
+const CAT_NAME=['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
+function catOf(score){ return Math.floor(score/Math.pow(16,5)); }
+
+/* ===== モンテカルロでエクイティ計算 ===== */
+function fullDeck(){
+  const d=[]; for(const r of RANKS) for(const s of SUITS) d.push(r+s); return d;
+}
+function equity(hole, board, opponents, iters){
+  const used=new Set([...hole,...board]);
+  const deck=fullDeck().filter(c=>!used.has(c));
+  let win=0,tie=0,total=0;
+  const need=5-board.length;
+  for(let it=0; it<iters; it++){
+    const pool=deck.slice();
+    const draw=(n)=>{
+      const out=[];
+      for(let k=0;k<n;k++){
+        const j=k+Math.floor(Math.random()*(pool.length-k));
+        const tmp=pool[k];pool[k]=pool[j];pool[j]=tmp;
+        out.push(pool[k]);
+      }
+      return out;
+    };
+    const sampled=draw(need + opponents*2);
+    const fullBoard=board.concat(sampled.slice(0,need));
+    const heroScore=bestScore(hole.concat(fullBoard));
+    let tying=1, heroBeaten=false;
+    for(let o=0;o<opponents;o++){
+      const oc=sampled.slice(need+o*2, need+o*2+2);
+      const os=bestScore(oc.concat(fullBoard));
+      if(os>heroScore){ heroBeaten=true; break; }
+      else if(os===heroScore){ tying++; }
+    }
+    total++;
+    if(heroBeaten){ /* lose */ }
+    else if(tying>1){ tie+=1/tying; }
+    else win++;
+  }
+  return (win+tie)/total;
+}
+
+/* ===== 推奨ロジック ===== */
+const POS_LABEL={early:'アーリー(UTG)',mid:'ミドル(MP)',co:'カットオフ(CO)',btn:'ボタン(BTN)',sb:'SB',bb:'BB'};
+const LATE = pos => pos==='co'||pos==='btn';
+
+function decide(eq, street, players, pos, potOdds){
+  let action, cls, reason=[];
+  const fair = 1/players;
+  const ratio = eq/fair;
+
+  if(street==='preflop'){
+    reason.push(`${players}人なので公平な勝率は約${(fair*100).toFixed(0)}%。あなたの勝率はその${ratio.toFixed(2)}倍。`);
+    let size = LATE(pos) ? '2.5〜3BB' : '3〜3.5BB';
+    if(ratio>=1.7){
+      action='レイズ'; cls='v-raise';
+      reason.push(`強いハンド。バリューで${size}にオープンレイズ（既にレイズが入っていれば3〜4倍のリレイズも可）。`);
+    }else if(ratio>=1.25){
+      if(LATE(pos)||pos==='bb'){
+        action='レイズ'; cls='v-raise';
+        reason.push(`ポジションが良い。${size}でオープン/参加して主導権を握る。`);
+      }else{
+        action='コール/フォールド'; cls='v-call';
+        reason.push(`そこそこのハンドだが前のポジション。前に大きなレイズがなければコール、強い相手のレイズにはフォールド寄り。`);
+      }
+    }else if(ratio>=0.95){
+      if(pos==='bb'){
+        action='チェック/コール'; cls='v-check';
+        reason.push(`BBなのでレイズがなければチェックで見られる。小さなレイズへのコールは可。`);
+      }else if(LATE(pos)){
+        action='コール'; cls='v-call';
+        reason.push(`ポジションがあるので安く入れるならコールして様子を見る。`);
+      }else{
+        action='フォールド'; cls='v-fold';
+        reason.push(`勝率が平凡で前のポジション。無理せずフォールド推奨。`);
+      }
+    }else{
+      if(pos==='bb'){
+        action='チェック(無料なら)'; cls='v-check';
+        reason.push(`弱いハンド。レイズが入っていればフォールド、誰も上げなければチェックで無料で見る。`);
+      }else{
+        action='フォールド'; cls='v-fold';
+        reason.push(`勝率が低い。フォールドして次のハンドを待つ。`);
+      }
+    }
+  } else {
+    reason.push(`現時点の勝率は${(eq*100).toFixed(1)}%。`);
+    if(potOdds!==null){
+      reason.push(`コールに必要な勝率は${(potOdds*100).toFixed(1)}%。`);
+    }
+    if(eq>=0.78){
+      action='ベット/レイズ(厚め)'; cls='v-raise';
+      reason.push(`非常に強い。ポットの2/3〜ポットサイズでバリューを取りに行く。相手のベットにはレイズ。`);
+    }else if(eq>=0.58){
+      action='ベット/コール'; cls='v-bet';
+      reason.push(`優位。ポットの1/2〜2/3でバリュー&プロテクションのベット。相手の適正ベットにはコール。`);
+    }else if(eq>=0.45){
+      if(LATE(pos)){
+        action='ベット(セミブラフ)/チェック'; cls='v-check';
+        reason.push(`五分前後。ポジションがあるので1/3〜1/2の小さめベットで主導権を取るか、チェックでコントロール。`);
+      }else{
+        action='チェック/コール'; cls='v-check';
+        reason.push(`五分前後だがポジションが悪い。チェックで進め、適正サイズのベットにはコール。`);
+      }
+      if(potOdds!==null && eq>=potOdds){
+        reason.push(`オッズ的にはコールが利益（勝率${(eq*100).toFixed(1)}% ≧ 必要${(potOdds*100).toFixed(1)}%）。`);
+      }
+    }else{
+      if(potOdds!==null && eq>=potOdds){
+        action='コール(オッズ的にOK)'; cls='v-call';
+        reason.push(`弱めだがポットオッズが見合う（勝率${(eq*100).toFixed(1)}% ≧ 必要${(potOdds*100).toFixed(1)}%）。安ければコール。`);
+      }else{
+        action='チェック/フォールド'; cls='v-fold';
+        reason.push(`勝率が低い。ベットには基本フォールド。ドローがあり激安で見られる時のみコール検討。`);
+      }
+    }
+  }
+  return {action,cls,reason:reason.join(' ')};
+}
+
+/* ===== 実行 ===== */
+document.getElementById('goBtn').addEventListener('click',()=>{
+  const hole=state.hole.filter(Boolean);
+  if(hole.length!==2){ alert('自分の手札を2枚選んでください。'); return; }
+  const flop=state.flop.filter(Boolean);
+  const turn=state.turn.filter(Boolean);
+  const river=state.river.filter(Boolean);
+  let board=[];
+  if(flop.length>0){
+    if(flop.length!==3){ alert('フロップは3枚すべて選ぶか、空にしてください。'); return; }
+    board=flop.slice();
+    if(turn.length===1){
+      board.push(turn[0]);
+      if(river.length===1) board.push(river[0]);
+    }else if(river.length===1){
+      alert('ターンを入れてからリバーを入力してください。'); return;
+    }
+  }else if(turn.length||river.length){
+    alert('フロップを先に入力してください。'); return;
+  }
+  const players=parseInt(document.getElementById('players').value,10);
+  const opponents=players-1;
+  let street = board.length===0?'preflop':board.length===3?'flop':board.length===4?'turn':'river';
+
+  const iters = street==='preflop'?6000:(street==='river'?4000:7000);
+  const eq=equity(hole, board, opponents, iters);
+
+  let handname='—';
+  if(board.length>=3){
+    handname=CAT_NAME[catOf(bestScore(hole.concat(board)))];
+  }
+
+  const pot=parseFloat(document.getElementById('pot').value);
+  const tocall=parseFloat(document.getElementById('tocall').value);
+  let potOdds=null;
+  if(!isNaN(pot)&&!isNaN(tocall)&&tocall>0){ potOdds=tocall/(pot+tocall); }
+
+  const d=decide(eq, street, players, state.pos, potOdds);
+
+  document.getElementById('result').style.display='block';
+  const v=document.getElementById('verdict');
+  v.textContent=d.action;
+  v.className='verdict '+d.cls;
+  document.getElementById('eq').textContent=(eq*100).toFixed(1)+' %';
+  document.getElementById('ebar').style.width=Math.min(100,eq*100).toFixed(1)+'%';
+  document.getElementById('handname').textContent=handname;
+  if(potOdds!==null){
+    document.getElementById('oddsStat').style.display='flex';
+    document.getElementById('potodds').textContent=(potOdds*100).toFixed(1)+' %';
+  }else{
+    document.getElementById('oddsStat').style.display='none';
+  }
+  document.getElementById('reason').textContent=`[${POS_LABEL[state.pos]} / ${street}] `+d.reason;
+  document.getElementById('result').scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+/* ===== 初期化 ===== */
+makeSlots('holeCards', state.hole, 'hole');
+makeSlots('flopCards', state.flop, 'flop');
+makeSlots('turnCards', state.turn, 'turn');
+makeSlots('riverCards', state.river, 'river');
+</script>
+</body>
+</html>
