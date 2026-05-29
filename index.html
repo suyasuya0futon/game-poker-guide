@@ -91,14 +91,7 @@
 
 <div class="panel">
   <div class="label">自分のポジション</div>
-  <div class="seg" id="posSeg">
-    <button data-pos="early">アーリー(UTG)</button>
-    <button data-pos="mid">ミドル(MP)</button>
-    <button data-pos="co">カットオフ(CO)</button>
-    <button data-pos="btn" class="on">ボタン(BTN)</button>
-    <button data-pos="sb">SB</button>
-    <button data-pos="bb">BB</button>
-  </div>
+  <div class="seg" id="posSeg"></div>
 </div>
 
 <div class="panel">
@@ -117,18 +110,22 @@
 </div>
 
 <div class="panel">
-  <div class="label">ポットオッズ計算（任意）</div>
+  <div class="label">チップ設定（任意・入れると金額で表示）</div>
+  <div class="row" style="margin-bottom:8px;">
+    <input id="bbamt" type="number" inputmode="numeric" placeholder="BB(ビッグブラインド)額" style="flex:1;">
+  </div>
   <div class="row">
     <input id="pot" type="number" inputmode="numeric" placeholder="現在のポット" style="flex:1;">
     <input id="tocall" type="number" inputmode="numeric" placeholder="コールに必要な額" style="flex:1;">
   </div>
-  <div class="hint">入力するとコール是非をオッズで厳密に判定します</div>
+  <div class="hint">BB額→プリフロップのレイズ額／ポット額→ベット額／コール額→オッズ判定に使います</div>
 </div>
 
 <button class="go" id="goBtn">判定する</button>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
+  <div id="sizebox" style="display:none;text-align:center;font-size:17px;font-weight:800;color:var(--accent);margin:-2px 0 10px;line-height:1.5;"></div>
   <div class="label" style="margin-top:6px;">勝率 (エクイティ)</div>
   <div class="equitybar"><div id="ebar" style="width:0%"></div></div>
   <div class="stat"><span>勝率</span><span id="eq"></span></div>
@@ -256,13 +253,33 @@ document.querySelectorAll('#suitRow button').forEach(b=>{
 document.getElementById('closeSheet').addEventListener('click',closePicker);
 document.getElementById('modal').addEventListener('click',e=>{ if(e.target.id==='modal') closePicker(); });
 
-/* ===== ポジション ===== */
-document.querySelectorAll('#posSeg button').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('#posSeg button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); state.pos=b.dataset.pos;
+/* ===== ポジション（人数に応じて表示を増減） ===== */
+const POS_TEXT={early:'アーリー(UTG)',mid:'ミドル(MP)',co:'カットオフ(CO)',btn:'ボタン(BTN)',sb:'SB',bb:'BB'};
+function posSetFor(n){
+  if(n===2) return ['sb','bb'];
+  if(n===3) return ['btn','sb','bb'];
+  if(n===4) return ['co','btn','sb','bb'];
+  if(n===5) return ['mid','co','btn','sb','bb'];
+  return ['early','mid','co','btn','sb','bb']; // 6人以上
+}
+function renderPositions(){
+  const n=parseInt(document.getElementById('players').value,10);
+  const set=posSetFor(n);
+  if(!set.includes(state.pos)) state.pos = set.includes('btn')?'btn':set[0];
+  const seg=document.getElementById('posSeg');
+  seg.innerHTML='';
+  set.forEach(p=>{
+    const b=document.createElement('button');
+    b.dataset.pos=p; b.textContent=POS_TEXT[p];
+    if(p===state.pos) b.classList.add('on');
+    b.addEventListener('click',()=>{
+      seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); state.pos=p;
+    });
+    seg.appendChild(b);
   });
-});
+}
+document.getElementById('players').addEventListener('change', renderPositions);
 
 /* ===== 役判定（7枚→最強5枚スコア） ===== */
 function bestScore(cards){
@@ -368,24 +385,32 @@ function equity(hole, board, opponents, iters){
 const POS_LABEL={early:'アーリー(UTG)',mid:'ミドル(MP)',co:'カットオフ(CO)',btn:'ボタン(BTN)',sb:'SB',bb:'BB'};
 const LATE = pos => pos==='co'||pos==='btn';
 
-function decide(eq, street, players, pos, potOdds){
+function fmtChips(n){ return Math.round(n).toLocaleString('ja-JP'); }
+
+function decide(eq, street, players, pos, potOdds, bbAmt, pot, toCall){
   let action, cls, reason=[];
   const fair = 1/players;
   const ratio = eq/fair;
   // ヘッズアップ(2人)ではSBがボタンを兼ね、フロップ以降は後手＝ポジション有利
   const headsUpSB = players===2 && pos==='sb';
   const inPos = LATE(pos) || headsUpSB;
+  const hasBB = !isNaN(bbAmt) && bbAmt>0;
+  const hasPot = !isNaN(pot) && pot>0;
+  const facing = !isNaN(toCall) && toCall>0;
+  let preMult=null;   // プリフロップのレイズ倍率(BB)
+  let postFrac=null;  // ポストフロップのベット割合(対ポット)
+  let sizeText=null;
 
   if(street==='preflop'){
     reason.push(`${players}人なので公平な勝率は約${(fair*100).toFixed(0)}%。あなたの勝率はその${ratio.toFixed(2)}倍。`);
     if(headsUpSB) reason.push(`ヘッズアップのSB＝ボタン。プリフロップは先手だがフロップ以降は後手で有利。`);
     let size = inPos ? '2.5〜3BB' : '3〜3.5BB';
     if(ratio>=1.7){
-      action='レイズ'; cls='v-raise';
+      action='レイズ'; cls='v-raise'; preMult = inPos?3:3.5;
       reason.push(`強いハンド。バリューで${size}にオープンレイズ（既にレイズが入っていれば3〜4倍のリレイズも可）。`);
     }else if(ratio>=1.25){
       if(inPos||pos==='bb'){
-        action='レイズ'; cls='v-raise';
+        action='レイズ'; cls='v-raise'; preMult = inPos?2.5:3;
         reason.push(`ポジションが良い。${size}でオープン/参加して主導権を握る。`);
       }else{
         action='コール/フォールド'; cls='v-call';
@@ -411,20 +436,25 @@ function decide(eq, street, players, pos, potOdds){
         reason.push(`勝率が低い。フォールドして次のハンドを待つ。`);
       }
     }
+    if(preMult!==null){
+      sizeText = hasBB
+        ? `${preMult}BB ≈ ${fmtChips(preMult*bbAmt)} にレイズ`
+        : `${preMult}BB にレイズ（BB額を入れると金額表示）`;
+    }
   } else {
     reason.push(`現時点の勝率は${(eq*100).toFixed(1)}%。`);
     if(potOdds!==null){
       reason.push(`コールに必要な勝率は${(potOdds*100).toFixed(1)}%。`);
     }
     if(eq>=0.78){
-      action='ベット/レイズ(厚め)'; cls='v-raise';
+      action='ベット/レイズ(厚め)'; cls='v-raise'; postFrac=0.75;
       reason.push(`非常に強い。ポットの2/3〜ポットサイズでバリューを取りに行く。相手のベットにはレイズ。`);
     }else if(eq>=0.58){
-      action='ベット/コール'; cls='v-bet';
+      action='ベット/コール'; cls='v-bet'; postFrac=0.6;
       reason.push(`優位。ポットの1/2〜2/3でバリュー&プロテクションのベット。相手の適正ベットにはコール。`);
     }else if(eq>=0.45){
       if(inPos){
-        action='ベット(セミブラフ)/チェック'; cls='v-check';
+        action='ベット(セミブラフ)/チェック'; cls='v-check'; postFrac=0.4;
         reason.push(`五分前後。ポジションがあるので1/3〜1/2の小さめベットで主導権を取るか、チェックでコントロール。`);
       }else{
         action='チェック/コール'; cls='v-check';
@@ -442,8 +472,20 @@ function decide(eq, street, players, pos, potOdds){
         reason.push(`勝率が低い。ベットには基本フォールド。ドローがあり激安で見られる時のみコール検討。`);
       }
     }
+    // 金額の算出
+    if(postFrac!==null){
+      if(facing){
+        sizeText = `相手のベット(${fmtChips(toCall)})の約3倍 ≈ ${fmtChips(toCall*3)} にレイズ`;
+      }else if(hasPot){
+        sizeText = `ポットの${Math.round(postFrac*100)}% ≈ ${fmtChips(postFrac*pot)} をベット`;
+      }else{
+        sizeText = `ポットの約${Math.round(postFrac*100)}%をベット（ポット額を入れると金額表示）`;
+      }
+    }else if(facing && action.indexOf('コール')>=0){
+      sizeText = `コール額 ${fmtChips(toCall)}`;
+    }
   }
-  return {action,cls,reason:reason.join(' ')};
+  return {action,cls,reason:reason.join(' '),sizeText};
 }
 
 /* ===== 実行 ===== */
@@ -479,17 +521,21 @@ document.getElementById('goBtn').addEventListener('click',()=>{
     boardname=CAT_NAME[catOf(bestScore(board))];
   }
 
+  const bbAmt=parseFloat(document.getElementById('bbamt').value);
   const pot=parseFloat(document.getElementById('pot').value);
   const tocall=parseFloat(document.getElementById('tocall').value);
   let potOdds=null;
   if(!isNaN(pot)&&!isNaN(tocall)&&tocall>0){ potOdds=tocall/(pot+tocall); }
 
-  const d=decide(eq, street, players, state.pos, potOdds);
+  const d=decide(eq, street, players, state.pos, potOdds, bbAmt, pot, tocall);
 
   document.getElementById('result').style.display='block';
   const v=document.getElementById('verdict');
   v.textContent=d.action;
   v.className='verdict '+d.cls;
+  const sb=document.getElementById('sizebox');
+  if(d.sizeText){ sb.style.display='block'; sb.textContent='💰 '+d.sizeText; }
+  else{ sb.style.display='none'; }
   document.getElementById('eq').textContent=(eq*100).toFixed(1)+' %';
   document.getElementById('ebar').style.width=Math.min(100,eq*100).toFixed(1)+'%';
   document.getElementById('handname').textContent=handname;
@@ -510,6 +556,7 @@ document.getElementById('goBtn').addEventListener('click',()=>{
 });
 
 /* ===== 初期化 ===== */
+renderPositions();
 makeSlots('holeCards', state.hole, 'hole');
 makeSlots('flopCards', state.flop, 'flop');
 makeSlots('turnCards', state.turn, 'turn');
