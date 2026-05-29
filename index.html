@@ -113,7 +113,7 @@
     </div>
     <div class="divider"></div>
     <div>
-      <div class="label">今できてる最高の役</div>
+      <div class="label">成立している役</div>
       <div class="mini-cards" id="bestCards"></div>
       <div class="best-name" id="bestName">—</div>
     </div>
@@ -398,7 +398,7 @@ function bestHandCards(cards){
   return {cards:best, score:bestSc};
 }
 
-// 手札右側の「今できてる最高の役」を更新
+// 手札右側の「成立している役」を更新
 function updateBestHand(){
   const hole=state.hole.filter(Boolean);
   const board=[...state.flop,...state.turn,...state.river].filter(Boolean);
