@@ -125,7 +125,7 @@
 </div>
 
 <button class="go" id="goBtn">判定する</button>
-<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30b</div>
+<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30c</div>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
@@ -274,7 +274,8 @@ function renderPositions(){
   seg.innerHTML='';
   set.forEach(p=>{
     const b=document.createElement('button');
-    b.dataset.pos=p; b.textContent=POS_TEXT[p];
+    b.dataset.pos=p;
+    b.textContent=(n===2 && p==='sb') ? 'SB(ボタン)' : POS_TEXT[p];
     if(p===state.pos) b.classList.add('on');
     b.addEventListener('click',()=>{
       seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
