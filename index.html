@@ -54,9 +54,6 @@
   .go{width:100%;padding:16px;font-size:18px;font-weight:800;border:none;border-radius:12px;
     background:var(--accent);color:#06241f;margin-top:4px;}
   .go:active{opacity:.8;}
-  .reset{width:100%;padding:12px;font-size:14px;font-weight:700;border:1px solid #34466b;
-    border-radius:10px;background:var(--panel2);color:var(--text);margin-top:8px;}
-  .reset:active{opacity:.8;}
   #result{display:none;}
   .equitybar{height:14px;border-radius:8px;background:#34466b;overflow:hidden;margin:8px 0;}
   .equitybar > div{height:100%;background:linear-gradient(90deg,var(--bad),var(--warn),var(--good));}
@@ -144,7 +141,6 @@
 </div>
 
 <button class="go" id="goBtn">判定する</button>
-<button class="reset" id="resetBtn">🔄 次のゲーム（手札・ボードをクリア）</button>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
@@ -650,8 +646,6 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   }
   document.getElementById('reason').textContent=`[${POS_LABEL[state.pos]} / ${street}] `+d.reason;
 });
-
-document.getElementById('resetBtn').addEventListener('click', resetHand);
 
 /* ===== 初期化 ===== */
 renderPositions();
