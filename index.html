@@ -54,6 +54,9 @@
   .go{width:100%;padding:16px;font-size:18px;font-weight:800;border:none;border-radius:12px;
     background:var(--accent);color:#06241f;margin-top:4px;}
   .go:active{opacity:.8;}
+  .reset{width:100%;padding:12px;font-size:14px;font-weight:700;border:1px solid #34466b;
+    border-radius:10px;background:var(--panel2);color:var(--text);margin-top:8px;}
+  .reset:active{opacity:.8;}
   #result{display:none;}
   .equitybar{height:14px;border-radius:8px;background:#34466b;overflow:hidden;margin:8px 0;}
   .equitybar > div{height:100%;background:linear-gradient(90deg,var(--bad),var(--warn),var(--good));}
@@ -141,6 +144,7 @@
 </div>
 
 <button class="go" id="goBtn">判定する</button>
+<button class="reset" id="resetBtn">🔄 次のゲーム（手札・ボードをクリア）</button>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
@@ -236,6 +240,18 @@ function setCard(group,i,card){
   renderGroup(group);
   updateBestHand();
 }
+// 次のゲーム用リセット（手札・ボード・ポット・結果をクリア。BB額と人数/ポジションは保持）
+function resetHand(){
+  state.hole.fill(null);
+  state.flop.fill(null);
+  state.turn.fill(null);
+  state.river.fill(null);
+  ['hole','flop','turn','river'].forEach(renderGroup);
+  const pot=document.getElementById('pot'); if(pot) pot.value='';
+  const tc=document.getElementById('tocall'); if(tc) tc.value='';
+  const res=document.getElementById('result'); if(res) res.style.display='none';
+  updateBestHand();
+}
 
 /* ===== 使用済みカード ===== */
 function usedCards(except){
@@ -318,13 +334,15 @@ function renderPositions(){
     b.textContent=(n===2 && p==='sb') ? 'SB(ボタン)' : POS_TEXT[p];
     if(p===state.pos) b.classList.add('on');
     b.addEventListener('click',()=>{
+      const changed = state.pos!==p;
       seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
       b.classList.add('on'); state.pos=p;
+      if(changed) resetHand(); // ポジション変更は次ゲーム扱い
     });
     seg.appendChild(b);
   });
 }
-document.getElementById('players').addEventListener('change', renderPositions);
+document.getElementById('players').addEventListener('change', ()=>{ renderPositions(); resetHand(); });
 
 /* ===== 役判定（7枚→最強5枚スコア） ===== */
 function bestScore(cards){
@@ -632,6 +650,8 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   }
   document.getElementById('reason').textContent=`[${POS_LABEL[state.pos]} / ${street}] `+d.reason;
 });
+
+document.getElementById('resetBtn').addEventListener('click', resetHand);
 
 /* ===== 初期化 ===== */
 renderPositions();
