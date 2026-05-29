@@ -78,6 +78,7 @@
   .rank-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
   .rank-grid button{padding:14px 0;font-size:18px;font-weight:700;border-radius:8px;border:1px solid #34466b;
     background:#fff;color:#111;}
+  .rank-grid button.red{color:#d40000;}
   .rank-grid button:disabled{opacity:.25;}
   .sheet .close{width:100%;margin-top:12px;padding:12px;border:none;border-radius:8px;background:var(--panel2);color:var(--text);font-size:15px;}
   .hint{font-size:11px;color:var(--muted);text-align:center;margin-top:6px;}
@@ -162,7 +163,7 @@
   </div>
   <div class="hint">BB額→プリフロップのレイズ額／ポット額→ベット額／コール額→オッズ判定に使います</div>
 </div>
-<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30j</div>
+<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30k</div>
 
 <!-- card picker modal -->
 <div class="modal" id="modal">
@@ -248,10 +249,18 @@ function usedCards(except){
 
 /* ===== ピッカー ===== */
 let pickTarget=null, pickSuit='s';
+const GROUP_LABEL={hole:'手札',flop:'フロップ',turn:'ターン',river:'リバー'};
+function setSheetTitle(){
+  if(!pickTarget) return;
+  const arr=arrOf(pickTarget.group), total=arr.length;
+  document.getElementById('sheetTitle').textContent =
+    total>1 ? `${GROUP_LABEL[pickTarget.group]} ${pickTarget.i+1}枚目／${total}枚を選択`
+            : `${GROUP_LABEL[pickTarget.group]}を選択`;
+}
 function openPicker(group,i){
   pickTarget={group,i};
   pickSuit='s';
-  syncSuitBtns(); renderRankGrid();
+  setSheetTitle(); syncSuitBtns(); renderRankGrid();
   document.getElementById('modal').classList.add('open');
 }
 function closePicker(){ document.getElementById('modal').classList.remove('open'); pickTarget=null; }
@@ -269,10 +278,16 @@ function renderRankGrid(){
     const card=r+pickSuit;
     const b=document.createElement('button');
     b.textContent = r==='T'?'10':r;
+    if(RED[pickSuit]) b.classList.add('red');
     if(used.has(card)) b.disabled=true;
     b.addEventListener('click',()=>{
-      setCard(pickTarget.group,pickTarget.i,card);
-      closePicker();
+      const grp=pickTarget.group;
+      setCard(grp,pickTarget.i,card);
+      // 同じグループに空きがあれば閉じずに次の枚へ、無ければ閉じる
+      const arr=arrOf(grp);
+      const next=arr.findIndex(c=>!c);
+      if(next>=0){ pickTarget.i=next; setSheetTitle(); renderRankGrid(); }
+      else closePicker();
     });
     grid.appendChild(b);
   });
