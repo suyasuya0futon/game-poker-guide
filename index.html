@@ -141,6 +141,16 @@
 
 <button class="go" id="goBtn">判定する</button>
 
+<div class="panel" id="result">
+  <div id="verdict" class="verdict"></div>
+  <div id="sizebox" style="display:none;text-align:center;font-size:17px;font-weight:800;color:var(--accent);margin:-2px 0 10px;line-height:1.5;"></div>
+  <div class="label" style="margin-top:6px;">勝率 (エクイティ)</div>
+  <div class="equitybar"><div id="ebar" style="width:0%"></div></div>
+  <div class="stat"><span>勝率</span><span id="eq"></span></div>
+  <div class="stat" id="oddsStat" style="display:none;"><span>必要勝率(ポットオッズ)</span><span id="potodds"></span></div>
+  <div class="reason" id="reason"></div>
+</div>
+
 <div class="panel">
   <div class="label">チップ設定（任意・入れると金額で表示）</div>
   <div class="row" style="margin-bottom:8px;">
@@ -152,17 +162,7 @@
   </div>
   <div class="hint">BB額→プリフロップのレイズ額／ポット額→ベット額／コール額→オッズ判定に使います</div>
 </div>
-<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30i</div>
-
-<div class="panel" id="result">
-  <div id="verdict" class="verdict"></div>
-  <div id="sizebox" style="display:none;text-align:center;font-size:17px;font-weight:800;color:var(--accent);margin:-2px 0 10px;line-height:1.5;"></div>
-  <div class="label" style="margin-top:6px;">勝率 (エクイティ)</div>
-  <div class="equitybar"><div id="ebar" style="width:0%"></div></div>
-  <div class="stat"><span>勝率</span><span id="eq"></span></div>
-  <div class="stat" id="oddsStat" style="display:none;"><span>必要勝率(ポットオッズ)</span><span id="potodds"></span></div>
-  <div class="reason" id="reason"></div>
-</div>
+<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30j</div>
 
 <!-- card picker modal -->
 <div class="modal" id="modal">
