@@ -140,7 +140,7 @@
   </div>
 </div>
 
-<button class="go" id="goBtn">判定する</button>
+<button class="go" id="goBtn">目安を見る</button>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
@@ -313,17 +313,17 @@ document.getElementById('closeSheet').addEventListener('click',closePicker);
 document.getElementById('modal').addEventListener('click',e=>{ if(e.target.id==='modal') closePicker(); });
 
 /* ===== ポジション（人数に応じて表示を増減） ===== */
-const POS_TEXT={utg:'UTG',ep:'EP',mp:'MP',mp2:'MP2',lj:'LJ',hj:'HJ',co:'CO',btn:'BTN',sb:'SB',bb:'BB'};
+const POS_TEXT={utg:'UTG',x1:'',x2:'',x3:'',x4:'',hj:'HJ',co:'CO',btn:'BTN',sb:'SB',bb:'BB'};
 function posSetFor(n){
   if(n===2) return ['sb','bb'];
   if(n===3) return ['btn','sb','bb'];
   if(n===4) return ['co','btn','sb','bb'];
   if(n===5) return ['hj','co','btn','sb','bb'];
   if(n===6) return ['utg','hj','co','btn','sb','bb'];
-  if(n===7) return ['utg','lj','hj','co','btn','sb','bb'];
-  if(n===8) return ['utg','mp','lj','hj','co','btn','sb','bb'];
-  if(n===9) return ['utg','ep','mp','lj','hj','co','btn','sb','bb'];
-  return ['utg','ep','mp','mp2','lj','hj','co','btn','sb','bb'];
+  if(n===7) return ['utg','x1','hj','co','btn','sb','bb'];
+  if(n===8) return ['utg','x1','x2','hj','co','btn','sb','bb'];
+  if(n===9) return ['utg','x1','x2','x3','hj','co','btn','sb','bb'];
+  return ['utg','x1','x2','x3','x4','hj','co','btn','sb','bb'];
 }
 function renderPositions(){
   const n=parseInt(document.getElementById('players').value,10);
@@ -334,7 +334,7 @@ function renderPositions(){
   set.forEach(p=>{
     const b=document.createElement('button');
     b.dataset.pos=p;
-    b.textContent=(n===2 && p==='sb') ? 'SB(ボタン)' : POS_TEXT[p];
+    b.textContent=(n===2 && p==='sb') ? 'SB/BTN' : POS_TEXT[p];
     if(p===state.pos) b.classList.add('on');
     b.addEventListener('click',()=>{
       const changed = state.pos!==p;
@@ -495,7 +495,7 @@ function equity(hole, board, opponents, iters){
 }
 
 /* ===== 推奨ロジック ===== */
-const POS_LABEL={utg:'UTG',ep:'EP',mp:'MP',mp2:'MP2',lj:'LJ',hj:'HJ',co:'CO',btn:'BTN',sb:'SB',bb:'BB'};
+const POS_LABEL={utg:'UTG',x1:'',x2:'',x3:'',x4:'',hj:'HJ',co:'CO',btn:'BTN',sb:'SB',bb:'BB'};
 const LATE = pos => pos==='co'||pos==='btn';
 
 function fmtChips(n){ return Math.round(n).toLocaleString('ja-JP'); }
@@ -651,7 +651,8 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   }else{
     document.getElementById('oddsStat').style.display='none';
   }
-  document.getElementById('reason').textContent=`[${POS_LABEL[state.pos]} / ${street}] `+d.reason;
+  const posLabel=POS_LABEL[state.pos];
+  document.getElementById('reason').textContent=(posLabel ? `[${posLabel} / ${street}] ` : `[${street}] `)+d.reason;
 });
 
 /* ===== 初期化 ===== */
