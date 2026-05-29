@@ -235,6 +235,9 @@ function setCard(group,i,card){
   arrOf(group)[i]=card;
   renderGroup(group);
   updateBestHand();
+  // カードを変更したら前回の判定結果を消す（古い勝率・アクションが残らないように）
+  const res=document.getElementById('result');
+  if(res) res.style.display='none';
 }
 // 次のゲーム用リセット（手札・ボード・ポット・結果をクリア。BB額と人数/ポジションは保持）
 function resetHand(){
