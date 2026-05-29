@@ -40,6 +40,9 @@
     color:#fff;font-size:13px;line-height:20px;text-align:center;display:none;}
   .slot.filled .x{display:block;}
   .street-tag{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .board-row{display:flex;gap:10px;align-items:flex-start;overflow-x:auto;padding-bottom:4px;}
+  .board-row .group{flex:none;}
+  .board-row .divider{width:1px;align-self:stretch;background:#34466b;margin:0 2px;}
   .go{width:100%;padding:16px;font-size:18px;font-weight:800;border:none;border-radius:12px;
     background:var(--accent);color:#06241f;margin-top:4px;}
   .go:active{opacity:.8;}
@@ -104,12 +107,21 @@
 
 <div class="panel">
   <div class="label">ボード（任意・進行に合わせて入力）</div>
-  <div class="street-tag">フロップ</div>
-  <div class="cards" id="flopCards"></div>
-  <div class="street-tag" style="margin-top:10px;">ターン</div>
-  <div class="cards" id="turnCards"></div>
-  <div class="street-tag" style="margin-top:10px;">リバー</div>
-  <div class="cards" id="riverCards"></div>
+  <div class="board-row">
+    <div class="group">
+      <div class="street-tag">フロップ</div>
+      <div class="cards" id="flopCards"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="group">
+      <div class="street-tag">ターン</div>
+      <div class="cards" id="turnCards"></div>
+    </div>
+    <div class="group">
+      <div class="street-tag">リバー</div>
+      <div class="cards" id="riverCards"></div>
+    </div>
+  </div>
 </div>
 
 <div class="panel">
@@ -125,7 +137,7 @@
 </div>
 
 <button class="go" id="goBtn">判定する</button>
-<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30d</div>
+<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30e</div>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
