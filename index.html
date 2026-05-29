@@ -313,14 +313,17 @@ document.getElementById('closeSheet').addEventListener('click',closePicker);
 document.getElementById('modal').addEventListener('click',e=>{ if(e.target.id==='modal') closePicker(); });
 
 /* ===== ポジション（人数に応じて表示を増減） ===== */
-const POS_TEXT={utg:'アンダー・ザ・ガン(UTG)',early:'アーリー(EP)',mid:'ミドル(MP)',hj:'ハイジャック(HJ)',co:'カットオフ(CO)',btn:'ボタン(BTN)',sb:'SB',bb:'BB'};
+const POS_TEXT={utg:'UTG',ep:'EP',mp:'MP',mp2:'MP2',lj:'LJ',hj:'HJ',co:'CO',btn:'BTN',sb:'SB',bb:'BB'};
 function posSetFor(n){
   if(n===2) return ['sb','bb'];
   if(n===3) return ['btn','sb','bb'];
   if(n===4) return ['co','btn','sb','bb'];
   if(n===5) return ['hj','co','btn','sb','bb'];
   if(n===6) return ['utg','hj','co','btn','sb','bb'];
-  return ['early','mid','hj','co','btn','sb','bb']; // 7人以上は大まかなカテゴリ
+  if(n===7) return ['utg','lj','hj','co','btn','sb','bb'];
+  if(n===8) return ['utg','mp','lj','hj','co','btn','sb','bb'];
+  if(n===9) return ['utg','ep','mp','lj','hj','co','btn','sb','bb'];
+  return ['utg','ep','mp','mp2','lj','hj','co','btn','sb','bb'];
 }
 function renderPositions(){
   const n=parseInt(document.getElementById('players').value,10);
@@ -492,7 +495,7 @@ function equity(hole, board, opponents, iters){
 }
 
 /* ===== 推奨ロジック ===== */
-const POS_LABEL={utg:'アンダー・ザ・ガン(UTG)',early:'アーリー(EP)',mid:'ミドル(MP)',hj:'ハイジャック(HJ)',co:'カットオフ(CO)',btn:'ボタン(BTN)',sb:'SB',bb:'BB'};
+const POS_LABEL={utg:'UTG',ep:'EP',mp:'MP',mp2:'MP2',lj:'LJ',hj:'HJ',co:'CO',btn:'BTN',sb:'SB',bb:'BB'};
 const LATE = pos => pos==='co'||pos==='btn';
 
 function fmtChips(n){ return Math.round(n).toLocaleString('ja-JP'); }
