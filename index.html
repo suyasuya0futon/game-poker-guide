@@ -132,7 +132,8 @@
   <div class="label" style="margin-top:6px;">勝率 (エクイティ)</div>
   <div class="equitybar"><div id="ebar" style="width:0%"></div></div>
   <div class="stat"><span>勝率</span><span id="eq"></span></div>
-  <div class="stat"><span>現在の役</span><span id="handname"></span></div>
+  <div class="stat"><span>自分の役（手札+盤面）</span><span id="handname"></span></div>
+  <div class="stat" id="boardStat" style="display:none;"><span>盤面だけの役（全員共有）</span><span id="boardname"></span></div>
   <div class="stat" id="oddsStat" style="display:none;"><span>必要勝率(ポットオッズ)</span><span id="potodds"></span></div>
   <div class="reason" id="reason"></div>
 </div>
@@ -287,8 +288,8 @@ function bestScore(cards){
   groups.sort((a,b)=> b.n-a.n || b.v-a.v);
   if(groups[0].n===4){
     const quad=groups[0].v;
-    const kick=Math.max(...vals.filter(v=>v!==quad));
-    return enc(7,[quad,kick]);
+    const rem=vals.filter(v=>v!==quad);
+    return enc(7,[quad, rem.length?Math.max(...rem):0]);
   }
   if(groups[0].n===3){
     const pair=groups.slice(1).find(g=>g.n>=2);
@@ -307,8 +308,8 @@ function bestScore(cards){
   }
   const pairs=groups.filter(g=>g.n===2).map(g=>g.v).sort((a,b)=>b-a);
   if(pairs.length>=2){
-    const k=Math.max(...vals.filter(v=>v!==pairs[0]&&v!==pairs[1]));
-    return enc(2,[pairs[0],pairs[1],k]);
+    const rem=vals.filter(v=>v!==pairs[0]&&v!==pairs[1]);
+    return enc(2,[pairs[0],pairs[1], rem.length?Math.max(...rem):0]);
   }
   if(pairs.length===1){
     const ks=vals.filter(v=>v!==pairs[0]).sort((a,b)=>b-a).slice(0,3);
@@ -468,9 +469,10 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   const iters = street==='preflop'?6000:(street==='river'?4000:7000);
   const eq=equity(hole, board, opponents, iters);
 
-  let handname='—';
+  let handname='—', boardname=null;
   if(board.length>=3){
     handname=CAT_NAME[catOf(bestScore(hole.concat(board)))];
+    boardname=CAT_NAME[catOf(bestScore(board))];
   }
 
   const pot=parseFloat(document.getElementById('pot').value);
@@ -487,6 +489,12 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   document.getElementById('eq').textContent=(eq*100).toFixed(1)+' %';
   document.getElementById('ebar').style.width=Math.min(100,eq*100).toFixed(1)+'%';
   document.getElementById('handname').textContent=handname;
+  if(boardname!==null){
+    document.getElementById('boardStat').style.display='flex';
+    document.getElementById('boardname').textContent=boardname;
+  }else{
+    document.getElementById('boardStat').style.display='none';
+  }
   if(potOdds!==null){
     document.getElementById('oddsStat').style.display='flex';
     document.getElementById('potodds').textContent=(potOdds*100).toFixed(1)+' %';
