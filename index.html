@@ -372,15 +372,19 @@ function decide(eq, street, players, pos, potOdds){
   let action, cls, reason=[];
   const fair = 1/players;
   const ratio = eq/fair;
+  // ヘッズアップ(2人)ではSBがボタンを兼ね、フロップ以降は後手＝ポジション有利
+  const headsUpSB = players===2 && pos==='sb';
+  const inPos = LATE(pos) || headsUpSB;
 
   if(street==='preflop'){
     reason.push(`${players}人なので公平な勝率は約${(fair*100).toFixed(0)}%。あなたの勝率はその${ratio.toFixed(2)}倍。`);
-    let size = LATE(pos) ? '2.5〜3BB' : '3〜3.5BB';
+    if(headsUpSB) reason.push(`ヘッズアップのSB＝ボタン。プリフロップは先手だがフロップ以降は後手で有利。`);
+    let size = inPos ? '2.5〜3BB' : '3〜3.5BB';
     if(ratio>=1.7){
       action='レイズ'; cls='v-raise';
       reason.push(`強いハンド。バリューで${size}にオープンレイズ（既にレイズが入っていれば3〜4倍のリレイズも可）。`);
     }else if(ratio>=1.25){
-      if(LATE(pos)||pos==='bb'){
+      if(inPos||pos==='bb'){
         action='レイズ'; cls='v-raise';
         reason.push(`ポジションが良い。${size}でオープン/参加して主導権を握る。`);
       }else{
@@ -391,7 +395,7 @@ function decide(eq, street, players, pos, potOdds){
       if(pos==='bb'){
         action='チェック/コール'; cls='v-check';
         reason.push(`BBなのでレイズがなければチェックで見られる。小さなレイズへのコールは可。`);
-      }else if(LATE(pos)){
+      }else if(inPos){
         action='コール'; cls='v-call';
         reason.push(`ポジションがあるので安く入れるならコールして様子を見る。`);
       }else{
@@ -419,7 +423,7 @@ function decide(eq, street, players, pos, potOdds){
       action='ベット/コール'; cls='v-bet';
       reason.push(`優位。ポットの1/2〜2/3でバリュー&プロテクションのベット。相手の適正ベットにはコール。`);
     }else if(eq>=0.45){
-      if(LATE(pos)){
+      if(inPos){
         action='ベット(セミブラフ)/チェック'; cls='v-check';
         reason.push(`五分前後。ポジションがあるので1/3〜1/2の小さめベットで主導権を取るか、チェックでコントロール。`);
       }else{
