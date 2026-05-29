@@ -40,6 +40,14 @@
     color:#fff;font-size:13px;line-height:20px;text-align:center;display:none;}
   .slot.filled .x{display:block;}
   .street-tag{font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .hole-wrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;}
+  .mini-cards{display:flex;gap:4px;flex-wrap:wrap;}
+  .minicard{width:30px;height:42px;border-radius:6px;background:#fff;color:#111;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:1px solid #ccc;}
+  .minicard.red{color:#d40000;}
+  .minicard .suit{font-size:12px;line-height:1;}
+  .minicard.empty{background:transparent;border:1px dashed #44557a;color:var(--muted);font-weight:500;}
+  .best-name{font-size:14px;font-weight:800;color:var(--accent);margin-top:6px;}
   .board-row{display:flex;gap:10px;align-items:flex-start;overflow-x:auto;padding-bottom:4px;}
   .board-row .group{flex:none;}
   .board-row .divider{width:1px;align-self:stretch;background:#34466b;margin:0 2px;}
@@ -101,8 +109,17 @@
 </div>
 
 <div class="panel">
-  <div class="label">自分の手札（2枚）</div>
-  <div class="cards" id="holeCards"></div>
+  <div class="hole-wrap">
+    <div>
+      <div class="label">自分の手札（2枚）</div>
+      <div class="cards" id="holeCards"></div>
+    </div>
+    <div>
+      <div class="label">今できてる最高の役</div>
+      <div class="mini-cards" id="bestCards"></div>
+      <div class="best-name" id="bestName">—</div>
+    </div>
+  </div>
 </div>
 
 <div class="panel">
@@ -137,7 +154,7 @@
 </div>
 
 <button class="go" id="goBtn">判定する</button>
-<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30e</div>
+<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30f</div>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
@@ -221,6 +238,7 @@ function renderGroup(group){
 function setCard(group,i,card){
   arrOf(group)[i]=card;
   renderGroup(group);
+  updateBestHand();
 }
 
 /* ===== 使用済みカード ===== */
@@ -359,6 +377,44 @@ function enc(cat,kick){
 }
 const CAT_NAME=['ハイカード','ワンペア','ツーペア','スリーカード','ストレート','フラッシュ','フルハウス','フォーカード','ストレートフラッシュ'];
 function catOf(score){ return Math.floor(score/Math.pow(16,5)); }
+
+// 利用可能なカードから最高の5枚（5枚未満ならそのまま）を返す
+function bestHandCards(cards){
+  if(cards.length<=5) return {cards:cards.slice(), score:bestScore(cards)};
+  const n=cards.length;
+  let best=null, bestSc=-1;
+  for(let a=0;a<n;a++)for(let b=a+1;b<n;b++)for(let c=b+1;c<n;c++)for(let d=c+1;d<n;d++)for(let e=d+1;e<n;e++){
+    const combo=[cards[a],cards[b],cards[c],cards[d],cards[e]];
+    const sc=bestScore(combo);
+    if(sc>bestSc){ bestSc=sc; best=combo; }
+  }
+  return {cards:best, score:bestSc};
+}
+
+// 手札右側の「今できてる最高の役」を更新
+function updateBestHand(){
+  const hole=state.hole.filter(Boolean);
+  const board=[...state.flop,...state.turn,...state.river].filter(Boolean);
+  const cont=document.getElementById('bestCards');
+  const nameEl=document.getElementById('bestName');
+  if(hole.length<2){
+    cont.innerHTML='<div class="minicard empty">?</div><div class="minicard empty">?</div>';
+    nameEl.textContent='手札を入れてね';
+    return;
+  }
+  const {cards,score}=bestHandCards(hole.concat(board));
+  // 役を構成する5枚を強い順(カテゴリ寄与順)で見やすく並べる: ランク降順
+  const order=cards.slice().sort((x,y)=>RVAL[y[0]]-RVAL[x[0]]);
+  cont.innerHTML='';
+  order.forEach(c=>{
+    const r=c[0], su=c[1];
+    const el=document.createElement('div');
+    el.className='minicard'+(RED[su]?' red':'');
+    el.innerHTML=`<span>${r==='T'?'10':r}</span><span class="suit">${SUIT_SYM[su]}</span>`;
+    cont.appendChild(el);
+  });
+  nameEl.textContent=CAT_NAME[catOf(score)];
+}
 
 /* ===== モンテカルロでエクイティ計算 ===== */
 function fullDeck(){
@@ -578,6 +634,7 @@ makeSlots('holeCards', state.hole, 'hole');
 makeSlots('flopCards', state.flop, 'flop');
 makeSlots('turnCards', state.turn, 'turn');
 makeSlots('riverCards', state.river, 'river');
+updateBestHand();
 </script>
 </body>
 </html>
