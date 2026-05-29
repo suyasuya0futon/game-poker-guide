@@ -139,6 +139,8 @@
   </div>
 </div>
 
+<button class="go" id="goBtn">判定する</button>
+
 <div class="panel">
   <div class="label">チップ設定（任意・入れると金額で表示）</div>
   <div class="row" style="margin-bottom:8px;">
@@ -150,9 +152,7 @@
   </div>
   <div class="hint">BB額→プリフロップのレイズ額／ポット額→ベット額／コール額→オッズ判定に使います</div>
 </div>
-
-<button class="go" id="goBtn">判定する</button>
-<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30h</div>
+<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px;">build 2026-05-30i</div>
 
 <div class="panel" id="result">
   <div id="verdict" class="verdict"></div>
@@ -160,8 +160,6 @@
   <div class="label" style="margin-top:6px;">勝率 (エクイティ)</div>
   <div class="equitybar"><div id="ebar" style="width:0%"></div></div>
   <div class="stat"><span>勝率</span><span id="eq"></span></div>
-  <div class="stat"><span>自分の役（手札+盤面）</span><span id="handname"></span></div>
-  <div class="stat" id="boardStat" style="display:none;"><span>盤面だけの役（全員共有）</span><span id="boardname"></span></div>
   <div class="stat" id="oddsStat" style="display:none;"><span>必要勝率(ポットオッズ)</span><span id="potodds"></span></div>
   <div class="reason" id="reason"></div>
 </div>
@@ -595,12 +593,6 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   const iters = street==='preflop'?6000:(street==='river'?4000:7000);
   const eq=equity(hole, board, opponents, iters);
 
-  let handname='—', boardname=null;
-  if(board.length>=3){
-    handname=handName(bestScore(hole.concat(board)));
-    boardname=handName(bestScore(board));
-  }
-
   const bbAmt=parseFloat(document.getElementById('bbamt').value);
   const pot=parseFloat(document.getElementById('pot').value);
   const tocall=parseFloat(document.getElementById('tocall').value);
@@ -618,13 +610,6 @@ document.getElementById('goBtn').addEventListener('click',()=>{
   else{ sb.style.display='none'; }
   document.getElementById('eq').textContent=(eq*100).toFixed(1)+' %';
   document.getElementById('ebar').style.width=Math.min(100,eq*100).toFixed(1)+'%';
-  document.getElementById('handname').textContent=handname;
-  if(boardname!==null){
-    document.getElementById('boardStat').style.display='flex';
-    document.getElementById('boardname').textContent=boardname;
-  }else{
-    document.getElementById('boardStat').style.display='none';
-  }
   if(potOdds!==null){
     document.getElementById('oddsStat').style.display='flex';
     document.getElementById('potodds').textContent=(potOdds*100).toFixed(1)+' %';
